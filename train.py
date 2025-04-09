@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import json
 import random
@@ -44,7 +45,7 @@ BATCH_SIZE = 4 # <<< 필요시 메모리에 맞게 조절
 EPOCHS = 10 # <<< 학습 에포크 수 조절
 LEARNING_RATE = 1e-4
 NUM_WORKERS = os.cpu_count() // 2 if os.cpu_count() else 0
-NUM_WORKERS = min(NUM_WORKERS, 4) 
+NUM_WORKERS = min(NUM_WORKERS, 4) # 예시: 최대 4개로 제한
 
 # --- 2. 데이터셋 클래스 정의 ---
 class DocLayNetDataset(Dataset):
@@ -56,7 +57,7 @@ class DocLayNetDataset(Dataset):
             self.coco = COCO(annotation_file)
         except Exception as e:
             print(f"Error loading COCO file {annotation_file}: {e}")
-            raise 
+            raise # 오류 발생 시 프로그램 중지
         print(f"Annotations loaded successfully.")
 
         self.image_ids = list(sorted(self.coco.imgs.keys()))
@@ -143,9 +144,15 @@ class DocLayNetDataset(Dataset):
 # 학습용 변환 (Data Augmentation 포함 가능)
 train_transforms = A.Compose([
     A.Resize(IMAGE_SIZE, IMAGE_SIZE),
-    # 필요시 여기에 Augmentation 추가 (예: HorizontalFlip, ShiftScaleRotate 등)
     A.HorizontalFlip(p=0.5),
-    A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
+    # A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5), # 이전 코드
+    A.Affine(
+        scale=(1 - 0.05, 1 + 0.05),      # scale_limit=0.05 에 해당
+        translate_percent=0.05,         # shift_limit=0.05 에 해당
+        rotate=(-15, 15),               # rotate_limit=15 에 해당
+        p=0.5                           # 동일한 적용 확률
+        # Affine 변환의 다른 파라미터(shear 등)는 기본값 사용
+    ),
     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     ToTensorV2(),
 ])
